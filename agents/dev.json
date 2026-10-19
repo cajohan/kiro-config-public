@@ -1,0 +1,95 @@
+{
+  "name": "dev",
+  "description": "默认开发 agent：shell 整体放行 + 黑名单兜底；~/Desktop 与 ~/.kiro 下读写免授权。只有「毁机器 / 毁远端」级别的命令会被硬拒（sudo、磁盘操作、关机、fork bomb、管道执行远程脚本、git force push / reset --hard、npm publish、rm -rf 危险目标等）",
+  "model": "claude-sonnet-5",
+  "tools": ["*"],
+  "allowedTools": [
+    "read",
+    "write",
+    "shell",
+    "grep",
+    "glob",
+    "code",
+    "todo",
+    "thinking",
+    "introspect",
+    "knowledge",
+    "web_search",
+    "web_fetch",
+    "@figma"
+  ],
+  "mcpServers": {
+    "figma": {
+      "url": "https://mcp.figma.com/mcp"
+    }
+  },
+  "toolsSettings": {
+    "shell": {
+      "autoAllowReadonly": true,
+      "_comment_allowedCommands": "shell 已在 allowedTools 里整体放行，这份白名单只作为「万一把 shell 从 allowedTools 移除」时的兜底。注意：白名单是整条命令做正则匹配，用 ; 或 && 串起来的复合命令匹配不上，这也是以前明明放行了还老弹窗的原因。",
+      "allowedCommands": [
+        "^git (status|log|diff|show|branch|fetch|remote|rev-parse|merge-base|describe|blame|shortlog|ls-files|cherry|config)\\b.*",
+        "^git (add|commit|checkout|switch|restore|merge|pull|push|stash|tag|cherry-pick|revert|rm)\\b.*",
+        "^(grep|rg|ag)\\b.*",
+        "^(ls|cat|head|tail|wc|find|which|file|stat|du|df|pwd|echo|diff|sort|uniq|tr|awk|sed|xargs|ps|lsof|pgrep|env|date|open)\\b.*",
+        "^(cp|mv|mkdir|touch|ln)\\b.*",
+        "^(node|npx|python3|ego-browser)\\b.*",
+        "^(yarn|npm|pnpm) (run )?(build|lint|test|serve|dev|build-zip|install|uninstall|ci)\\b.*",
+        "^(yarn|npm|pnpm|node) (-v|--version)\\b.*",
+        "^(export|source|\\.)\\b.*",
+        "^curl\\b.*localhost.*"
+      ],
+      "_comment_deniedCommands": "始终拒绝（优先级最高，allowedTools 里的整体放行也压不过它）。分三类：① 毁本机 ② 毁远端/发布 ③ 误杀 IDE 进程。",
+      "deniedCommands": [
+        ".*\\bsudo\\b.*",
+        ".*\\bmkfs(\\.[a-z0-9]+)?\\b.*",
+        ".*\\bdd\\s+if=.*",
+        ".*\\bdiskutil\\s+(erase|partition|reformat|repartition)\\b.*",
+        ".*\\b(shutdown|reboot|halt)\\b.*",
+        ".*>\\s*/dev/(disk|rdisk|sd[a-z]).*",
+        ".*chmod\\s+-R\\s+777\\s+/.*",
+        ".*chown\\s+-R\\s+\\S+\\s+/(\\s|$).*",
+        ".*:\\(\\)\\s*\\{.*\\};\\s*:.*",
+        ".*(curl|wget)\\b.*\\|\\s*(ba|z|k|c)?sh\\b.*",
+        ".*rm\\s+(-[a-zA-Z]+\\s+)*-?[a-zA-Z]*[rR][a-zA-Z]*\\s+(-[a-zA-Z]+\\s+)*(/|~|~/|\\$HOME|\\*|\\.|\\.\\.)\\s*$",
+        ".*rm\\s+(-[a-zA-Z]+\\s+)*/(System|Users|Applications|Library|bin|sbin|usr|etc|var|opt|private)\\b.*",
+        ".*git\\s+push\\b.*(--force|--force-with-lease|\\s-f\\b).*",
+        ".*git\\s+push\\b.*:\\s*(master|main|refs/heads/(master|main))\\b.*",
+        ".*git\\s+reset\\s+--hard\\b.*",
+        ".*git\\s+clean\\s+-[a-zA-Z]*f.*",
+        ".*git\\s+branch\\s+(-D|--delete\\s+--force)\\b.*",
+        ".*git\\s+(filter-branch|filter-repo)\\b.*",
+        ".*git\\s+update-ref\\s+-d\\b.*",
+        ".*git\\s+config\\s+--global\\b.*",
+        ".*npm\\s+publish\\b.*",
+        ".*\\bkillall\\b.*",
+        ".*pkill\\s+(-[0-9A-Za-z]+\\s+)*(node|Code|Kiro)\\s*$"
+      ]
+    },
+    "write": {
+      "allowedPaths": [
+        "~/Desktop/**",
+        "~/.kiro/**",
+        "/tmp/**",
+        "./**"
+      ],
+      "deniedPaths": [
+        "**/.env*",
+        "**/secrets*",
+        "**/*.pem",
+        "**/id_rsa*",
+        "~/.ssh/**",
+        "~/.aws/**",
+        "~/.kiro/agents/**"
+      ]
+    },
+    "read": {
+      "allowedPaths": [
+        "~/Desktop/**",
+        "~/.kiro/**",
+        "/tmp/**",
+        "./**"
+      ]
+    }
+  }
+}

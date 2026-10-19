@@ -1,0 +1,28 @@
+# 白名单：默认全部忽略，只放行配置类文件
+# 会话、日志、缓存、扩展、secrets.json 等一律不进仓库
+/*
+!/.gitignore
+!/steering/
+!/skills/
+!/agents/
+!/hooks/
+!/scripts/
+!/powers/
+!/settings/
+
+# settings 下只放行这几个
+/settings/*
+!/settings/cli.json
+!/settings/permissions.yaml
+!/settings/mcp.json
+
+# powers 下只要安装清单
+/powers/*
+!/powers/installed.json
+
+*.bak
+*.lock
+.DS_Store
+
+# 公司内部信息只留本地，不进 GitHub
+/steering/internal-*.md

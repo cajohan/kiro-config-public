@@ -1,0 +1,16 @@
+{
+  "chat.defaultAgent": "dev",
+  "chat.modelDefaults": {
+    "claude-opus-5": {
+      "output_config": {
+        "effort": "medium"
+      }
+    },
+    "claude-sonnet-5": {
+      "output_config": {
+        "effort": "medium"
+      }
+    }
+  },
+  "chat.defaultModel": "claude-sonnet-5.5"
+}

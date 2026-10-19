@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "检测Kiro更新后重新验证ego子agent委派bug",
+      "trigger": "SessionStart",
+      "description": "每次新会话开始时对比Kiro版本号，如果比上次检测时更新了，就提示主agent在本次会话中用invoke_sub_agent尝试委派到自定义agent\"ego\"，验证 https://github.com/kirodotdev/Kiro/issues/11333 这个已知bug（inlineAgentsEnabled默认false导致自定义agent无法被委派）是否已被官方修复。若版本未变则静默不提示。",
+      "action": {
+        "type": "command",
+        "command": "~/.kiro/scripts/check-ego-subagent.sh"
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+rules:
+  - capability: all
+    effect: allow
+  - capability: shell
+    effect: ask
+    match:
+      - "*rm -r*"
+      - "*rm -R*"
+      - "*rm -fr*"
+      - "*rm -fR*"
+      - "*rm -f -r*"
+      - "*rm -f -R*"
+      - find *-delete*
+      - sudo *
+      - git push -f*
+      - git push * -f*
+      - git push *--force*
+      - git push *--delete*
+      - git push * :*
+      - git push * master
+      - git push *:master
+      - git reset *--hard*
+      - git clean *
+      - git checkout .
+      - git checkout -- .
+      - git restore .
+      - git branch *-D*
+      - killall *
+      - pkill node
+      - pkill * node
+  - capability: mcp
+    effect: ask
+    match:
+      - figma/generate_image
+  - capability: shell
+    effect: deny
+    match:
+      - git push*master*

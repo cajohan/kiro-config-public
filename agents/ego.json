@@ -1,0 +1,44 @@
+{
+  "name": "ego",
+  "description": "浏览器/网页操作专用 agent：开页面、量数值、抓数据、照流程点，用低倍率模型省 credits；视觉判断交回主会话",
+  "model": "gpt-5.6-luna",
+  "prompt": "你负责用 ego-browser 完成网页操作（打开页面、点按钮、填表单、读 computed style、抓数据、轮询等待）。只做被交代的事，把结果如实汇报（数值、文本、结论），不要顺手改仓库里的代码。\n\n⚠️ 你所在的模型可能不具备读图能力，**不要依赖截图做判断**：\n- 优先用 snapshotText() 的语义树 + ref/loc 定位，用 js() 直接量 getBoundingClientRect / getComputedStyle / 读 DOM 文本，这些是纯文本、可靠且便宜的路径。\n- 点击没生效时不要改用「看图找坐标」，改用更稳的手段：重新 snapshotText() 取新 ref、用精确 CSS 选择器、或直接 js() 里 element.click()。\n- 确实需要视觉判断（间距对不对、像不像设计稿、canvas/富文本编辑器类页面）时，**不要自己下结论**：用 captureScreenshot() 存图，把**文件路径**连同你已量到的数值一起回报，交由主会话判断。\n\n拿不到内容时按 ego-browser skill 里的 handOffTaskSpace 流程交给用户，不要反复重试。",
+  "tools": [
+    "shell",
+    "read",
+    "grep",
+    "glob",
+    "web_search"
+  ],
+  "allowedTools": [
+    "shell",
+    "read",
+    "grep",
+    "glob",
+    "web_search"
+  ],
+  "keyboardShortcut": "ctrl+shift+e",
+  "toolsSettings": {
+    "shell": {
+      "autoAllowReadonly": true,
+      "allowedCommands": [
+        "^ego-browser\\b.*",
+        "^(node|npx|python3)\\b.*",
+        "^(ls|cat|head|tail|wc|find|which|file|stat|echo|grep|sed|awk|sort|uniq|date|open|curl|lsof|ps)\\b.*"
+      ],
+      "deniedCommands": [
+        ".*\\bsudo\\b.*",
+        ".*\\bgit\\s+(push|commit|reset|clean|rebase|merge)\\b.*",
+        ".*\\b(rm|mkfs|dd|shutdown|reboot|killall)\\b.*"
+      ]
+    },
+    "read": {
+      "allowedPaths": [
+        "~/Desktop/**",
+        "~/.kiro/**",
+        "/tmp/**",
+        "./**"
+      ]
+    }
+  }
+}
