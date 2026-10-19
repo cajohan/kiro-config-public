@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "历史会话去图只留文字",
+      "trigger": "SessionStart",
+      "description": "每次新会话开始时，把 48 小时前的 CLI / IDE 会话里内嵌的图片换成一句文字说明（脚本只处理有变化的文件，平时几十毫秒，静默无输出）。",
+      "action": {
+        "type": "command",
+        "command": "python3 ~/.kiro/scripts/strip-session-images.py"
+      },
+      "timeout": 60
+    }
+  ]
+}

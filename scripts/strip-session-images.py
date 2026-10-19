@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""把 kiro-cli 历史会话（~/.kiro/sessions/cli/*.jsonl）里内嵌的图片块替换成一句文字说明，只保留文字。
+"""把 Kiro 历史会话里内嵌的图片替换成一句文字说明，只保留文字。
+
+- CLI：~/.kiro/sessions/cli/*.jsonl；IDE：~/.kiro/sessions/<工作区>/sess_*/messages.jsonl
+  （IDE 的 publish.cursor 记录字节偏移，改写后同步重算，否则 IDE 读错位置）。
 
 - 图片在会话里以 {"kind":"bytes","data":[...整数数组...]} 存储，一张截图就是几十万个数字，
   会话体积 90% 以上是它。换成同结构的文字块后 --resume 仍能正常加载。
@@ -63,6 +66,78 @@ def process(path):
         os.utime(path, (st.st_atime, st.st_mtime))  # 保留原修改时间，会话列表的排序不变
     return total
 
+IDE_ROOT = os.path.expanduser("~/.kiro/sessions")
+
+
+def strip_ide_line(obj):
+    """IDE 会话：用户贴的图在 payload.images[]（data/dataUrl 为 base64），清空并在正文后加说明。"""
+    pl = obj.get("payload") if isinstance(obj, dict) else None
+    imgs = pl.get("images") if isinstance(pl, dict) else None
+    if not imgs:
+        return 0
+    n = len(imgs)
+    pl["images"] = []
+    if isinstance(pl.get("content"), str):
+        pl["content"] += "\n" + (TEXT if n == 1 else f"{TEXT} x{n}")
+    return n
+
+
+def process_ide(sess_dir):
+    """改写 messages.jsonl，并同步修正 publish.cursor（格式 "<字节偏移>:<行数>"，偏移按新文件重算）。"""
+    path = os.path.join(sess_dir, "messages.jsonl")
+    cur_path = os.path.join(sess_dir, "publish.cursor")
+    lines, total = [], 0
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if '"images"' in line and len(line) > 5000:
+                obj = json.loads(line)
+                c = strip_ide_line(obj)
+                if c:
+                    total += c
+                    line = json.dumps(obj, ensure_ascii=False, separators=(",", ":")) + "\n"
+            lines.append(line)
+    if not total:
+        return 0
+    cursor = None
+    if os.path.exists(cur_path):
+        # offset 总落在行边界上，但 seq 不等于行号（有些行不计数），所以按「旧 offset 对应第几行」换算
+        off, _, seq = open(cur_path).read().strip().partition(":")
+        off, old_cum, k = int(off), 0, -1
+        with open(path, "rb") as f:
+            for k, raw in enumerate(f):
+                if old_cum == off:
+                    break
+                old_cum += len(raw)
+            else:
+                k += 1
+        if old_cum != off:
+            raise RuntimeError(f"cursor offset {off} not on a line boundary")
+        cursor = f"{sum(len(l.encode('utf-8')) for l in lines[:k])}:{seq}"
+    st = os.stat(path)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+    os.replace(tmp, path)
+    os.utime(path, (st.st_atime, st.st_mtime))
+    if cursor is not None:
+        cst = os.stat(cur_path)
+        with open(cur_path + ".tmp", "w") as f:
+            f.write(cursor)
+        os.replace(cur_path + ".tmp", cur_path)
+        os.utime(cur_path, (cst.st_atime, cst.st_mtime))
+    return total
+
+
+def ide_sessions():
+    for ws in os.listdir(IDE_ROOT):
+        wdir = os.path.join(IDE_ROOT, ws)
+        if ws == "cli" or not os.path.isdir(wdir):
+            continue
+        for sd in os.listdir(wdir):
+            p = os.path.join(wdir, sd)
+            if sd.startswith("sess_") and os.path.isfile(os.path.join(p, "messages.jsonl")):
+                yield p
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -93,6 +168,21 @@ def main():
             continue
         st2 = os.stat(p)
         state[name] = [st2.st_mtime, st2.st_size]
+        if c:
+            files, imgs, saved = files + 1, imgs + c, saved + st.st_size - st2.st_size
+    for sd in ide_sessions():
+        p = os.path.join(sd, "messages.jsonl")
+        key = "ide:" + os.path.relpath(sd, IDE_ROOT)
+        st = os.stat(p)
+        if now - st.st_mtime < args.min_age_hours * 3600 or state.get(key) == [st.st_mtime, st.st_size]:
+            continue
+        try:
+            c = process_ide(sd)
+        except Exception as e:
+            print(f"skip {key}: {e}", file=sys.stderr)
+            continue
+        st2 = os.stat(p)
+        state[key] = [st2.st_mtime, st2.st_size]
         if c:
             files, imgs, saved = files + 1, imgs + c, saved + st.st_size - st2.st_size
     tmp = STATE + ".tmp"
