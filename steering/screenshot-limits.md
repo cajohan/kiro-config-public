@@ -50,3 +50,14 @@ sips -Z 1600 /tmp/x.png          # 长边缩到 1600
 ```bash
 rm -f /tmp/xxx.png
 ```
+
+## 历史会话只保留文字
+
+图片会以字节数组的形式整张存进 `~/.kiro/sessions/cli/*.jsonl`，一个走查 UI 的会话能到 100M+。
+用户决定（2026-10-19）：**历史会话只保留文字**，有价值的结论写进全局配置，截图不留。
+
+- `~/.kiro/scripts/strip-session-images.py` 把 48 小时前会话里的图片块换成一句
+  「[图片已移除，仅保留文字]」，跳过当前会话，`--resume` 照常可用。挂在 `dev` agent 的
+  `agentSpawn` hook 上，每次开新会话自动跑（只处理有变化的文件，平时几十毫秒）。
+- 不要改成 1x1 占位图：resume 时模型 API 会报 `Could not process image`，必须换成文字块。
+- IDE 的会话（`sessions/` 下的短 ID 目录）结构不同，脚本不处理。
