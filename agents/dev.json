@@ -2,7 +2,9 @@
   "name": "dev",
   "description": "默认开发 agent：shell 整体放行 + 黑名单兜底；~/Desktop 与 ~/.kiro 下读写免授权。只有「毁机器 / 毁远端」级别的命令会被硬拒（sudo、磁盘操作、关机、fork bomb、管道执行远程脚本、git force push / reset --hard、npm publish、rm -rf 危险目标等）",
   "model": "claude-sonnet-5",
-  "tools": ["*"],
+  "tools": [
+    "*"
+  ],
   "allowedTools": [
     "read",
     "write",
@@ -91,5 +93,13 @@
         "./**"
       ]
     }
+  },
+  "hooks": {
+    "agentSpawn": [
+      {
+        "command": "python3 ~/.kiro/scripts/strip-session-images.py",
+        "timeout_ms": 60000
+      }
+    ]
   }
 }
