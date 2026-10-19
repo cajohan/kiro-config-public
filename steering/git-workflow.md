@@ -121,9 +121,8 @@ git status -sb | head -1        # 应显示 ...origin/<同名分支>，且没有
 即使改动很小、即使 uat 已经验收通过、即使用户说"可以发生产"——"发生产"指的是**提 MR 等合并**，
 不是自己把 master 推上去。
 
-**适用范围只限 GitLab。** GitHub 上是用户自己的个人仓库（例如 `cajohan/kiro-config`，即 `~/.kiro`），
-不受这条限制，可以直接 `git push origin main`，见 `config-sync.md`。判断依据是 `git remote -v` 里的主机名：
-公司 GitLab（主机名见 `internal-project-notes.md`）走 MR，`github.com` 的个人仓库直接推。拿不准是不是用户自己的仓库时先问。
+**适用范围只限公司 GitLab**（主机名见 `internal-project-notes.md`，以 `git remote -v` 为准）。
+`~/.kiro` 配置仓库只做本地提交、不推远端，见 `config-sync.md`。
 
 sit / uat 等部署分支可以本地合并后 `git push`；**master / main 例外**。
 
