@@ -1,0 +1,31 @@
+{
+  "chat.defaultAgent": "dev",
+  "chat.modelDefaults": {
+    "claude-opus-5": {
+      "output_config": {
+        "effort": "medium"
+      }
+    },
+    "claude-sonnet-5": {
+      "output_config": {
+        "effort": "high"
+      }
+    },
+    "claude-opus-5.5": {
+      "output_config": {
+        "effort": "medium"
+      }
+    },
+    "claude-sonnet-5.5": {
+      "output_config": {
+        "effort": "high"
+      }
+    }
+  },
+  "chat.defaultModel": "claude-sonnet-5.5",
+  "chat.agentEngine": "v3",
+  "chat.modelPicker.lastUsed": {
+    "claude-sonnet-5": 1794821060181,
+    "claude-sonnet-5.5": 1794826108233
+  }
+}

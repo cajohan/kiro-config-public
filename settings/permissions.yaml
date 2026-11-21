@@ -1,0 +1,7 @@
+rules:
+  - capability: all
+    effect: allow
+  - capability: shell
+    effect: deny
+    match:
+      - git push*master*

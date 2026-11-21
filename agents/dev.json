@@ -1,0 +1,365 @@
+{
+  "name": "dev",
+  "description": "默认开发 agent：shell 整体放行 + 黑名单兜底；~/Desktop 与 ~/.kiro 下读写免授权。只有「毁机器 / 毁远端」级别的命令会被硬拒（sudo、磁盘操作、关机、fork bomb、管道执行远程脚本、git force push / reset --hard、npm publish、rm -rf 危险目标等）",
+  "model": "claude-sonnet-5",
+  "tools": [
+    "*"
+  ],
+  "allowedTools": [
+    "read",
+    "write",
+    "shell",
+    "grep",
+    "glob",
+    "code",
+    "todo",
+    "thinking",
+    "introspect",
+    "knowledge",
+    "web_search",
+    "web_fetch",
+    "@figma"
+  ],
+  "mcpServers": {
+    "figma": {
+      "url": "https://mcp.figma.com/mcp"
+    }
+  },
+  "toolsSettings": {
+    "shell": {
+      "autoAllowReadonly": true,
+      "_comment_allowedCommands": "shell 已在 allowedTools 里整体放行，这份白名单只作为「万一把 shell 从 allowedTools 移除」时的兜底。注意：白名单是整条命令做正则匹配，用 ; 或 && 串起来的复合命令匹配不上，这也是以前明明放行了还老弹窗的原因。",
+      "allowedCommands": [
+        "^git (status|log|diff|show|branch|fetch|remote|rev-parse|merge-base|describe|blame|shortlog|ls-files|cherry|config)\\b.*",
+        "^git (add|commit|checkout|switch|restore|merge|pull|push|stash|tag|cherry-pick|revert|rm)\\b.*",
+        "^(grep|rg|ag)\\b.*",
+        "^(ls|cat|head|tail|wc|find|which|file|stat|du|df|pwd|echo|diff|sort|uniq|tr|awk|sed|xargs|ps|lsof|pgrep|env|date|open)\\b.*",
+        "^(cp|mv|mkdir|touch|ln)\\b.*",
+        "^(node|npx|python3|ego-browser)\\b.*",
+        "^(yarn|npm|pnpm) (run )?(build|lint|test|serve|dev|build-zip|install|uninstall|ci)\\b.*",
+        "^(yarn|npm|pnpm|node) (-v|--version)\\b.*",
+        "^(export|source|\\.)\\b.*",
+        "^curl\\b.*localhost.*"
+      ],
+      "_comment_deniedCommands": "始终拒绝（优先级最高，allowedTools 里的整体放行也压不过它）。分三类：① 毁本机 ② 毁远端/发布 ③ 误杀 IDE 进程。",
+      "deniedCommands": [
+        ".*\\bsudo\\b.*",
+        ".*\\bmkfs(\\.[a-z0-9]+)?\\b.*",
+        ".*\\bdd\\s+if=.*",
+        ".*\\bdiskutil\\s+(erase|partition|reformat|repartition)\\b.*",
+        ".*\\b(shutdown|reboot|halt)\\b.*",
+        ".*>\\s*/dev/(disk|rdisk|sd[a-z]).*",
+        ".*chmod\\s+-R\\s+777\\s+/.*",
+        ".*chown\\s+-R\\s+\\S+\\s+/(\\s|$).*",
+        ".*:\\(\\)\\s*\\{.*\\};\\s*:.*",
+        ".*(curl|wget)\\b.*\\|\\s*(ba|z|k|c)?sh\\b.*",
+        ".*rm\\s+(-[a-zA-Z]+\\s+)*-?[a-zA-Z]*[rR][a-zA-Z]*\\s+(-[a-zA-Z]+\\s+)*(/|~|~/|\\$HOME|\\*|\\.|\\.\\.)\\s*$",
+        ".*rm\\s+(-[a-zA-Z]+\\s+)*/(System|Users|Applications|Library|bin|sbin|usr|etc|var|opt|private)\\b.*",
+        ".*git\\s+push\\b.*(--force|--force-with-lease|\\s-f\\b).*",
+        ".*git\\s+push\\b.*:\\s*(master|main|refs/heads/(master|main))\\b.*",
+        ".*git\\s+reset\\s+--hard\\b.*",
+        ".*git\\s+clean\\s+-[a-zA-Z]*f.*",
+        ".*git\\s+(filter-branch|filter-repo)\\b.*",
+        ".*git\\s+update-ref\\s+-d\\b.*",
+        ".*git\\s+config\\s+--global\\b.*",
+        ".*npm\\s+publish\\b.*",
+        ".*\\bkillall\\b.*",
+        ".*pkill\\s+(-[0-9A-Za-z]+\\s+)*(node|Code|Kiro)\\s*$"
+      ]
+    },
+    "write": {
+      "allowedPaths": [
+        "~/Desktop/**",
+        "~/.kiro/**",
+        "/tmp/**",
+        "./**"
+      ],
+      "deniedPaths": [
+        "**/.env*",
+        "**/secrets*",
+        "**/*.pem",
+        "**/id_rsa*",
+        "~/.ssh/**",
+        "~/.aws/**",
+        "~/.kiro/agents/**"
+      ]
+    },
+    "read": {
+      "allowedPaths": [
+        "~/Desktop/**",
+        "~/.kiro/**",
+        "/tmp/**",
+        "./**"
+      ]
+    }
+  },
+  "hooks": [
+    {
+      "name": "agentSpawn-0",
+      "trigger": "agentSpawn",
+      "action": {
+        "type": "command",
+        "command": "python3 ~/.kiro/scripts/strip-session-images.py"
+      },
+      "timeout": 60
+    }
+  ],
+  "permissions": {
+    "rules": [
+      {
+        "capability": "shell",
+        "match": [
+          "git status*",
+          "git log*",
+          "git diff*",
+          "git show*",
+          "git branch*",
+          "git fetch*",
+          "git remote*",
+          "git rev-parse*",
+          "git merge-base*",
+          "git describe*",
+          "git blame*",
+          "git shortlog*",
+          "git ls-files*",
+          "git cherry*",
+          "git config*",
+          "git add*",
+          "git commit*",
+          "git checkout*",
+          "git switch*",
+          "git restore*",
+          "git merge*",
+          "git pull*",
+          "git push*",
+          "git stash*",
+          "git tag*",
+          "git cherry-pick*",
+          "git revert*",
+          "git rm*",
+          "grep*",
+          "rg*",
+          "ag*",
+          "ls*",
+          "cat*",
+          "head*",
+          "tail*",
+          "wc*",
+          "find*",
+          "which*",
+          "file*",
+          "stat*",
+          "du*",
+          "df*",
+          "pwd*",
+          "echo*",
+          "diff*",
+          "sort*",
+          "uniq*",
+          "tr*",
+          "awk*",
+          "sed*",
+          "xargs*",
+          "ps*",
+          "pgrep*",
+          "env*",
+          "date*",
+          "open*",
+          "cp*",
+          "mv*",
+          "mkdir*",
+          "touch*",
+          "ln*",
+          "node*",
+          "npx*",
+          "python3*",
+          "ego-browser*",
+          "yarn run build*",
+          "yarn run lint*",
+          "yarn run test*",
+          "yarn run serve*",
+          "yarn run dev*",
+          "yarn run install*",
+          "yarn run uninstall*",
+          "yarn run ci*",
+          "yarn build*",
+          "yarn lint*",
+          "yarn test*",
+          "yarn serve*",
+          "yarn dev*",
+          "yarn install*",
+          "yarn uninstall*",
+          "yarn ci*",
+          "npm run build*",
+          "npm run lint*",
+          "npm run test*",
+          "npm run serve*",
+          "npm run dev*",
+          "npm run install*",
+          "npm run uninstall*",
+          "npm run ci*",
+          "npm build*",
+          "npm lint*",
+          "npm test*",
+          "npm serve*",
+          "npm dev*",
+          "npm install*",
+          "npm uninstall*",
+          "npm ci*",
+          "pnpm run build*",
+          "pnpm run lint*",
+          "pnpm run test*",
+          "pnpm run serve*",
+          "pnpm run dev*",
+          "pnpm run install*",
+          "pnpm run uninstall*",
+          "pnpm run ci*",
+          "pnpm build*",
+          "pnpm lint*",
+          "pnpm test*",
+          "pnpm serve*",
+          "pnpm dev*",
+          "pnpm install*",
+          "pnpm uninstall*",
+          "pnpm ci*",
+          "yarn -v*",
+          "yarn --version*",
+          "npm -v*",
+          "npm --version*",
+          "pnpm -v*",
+          "pnpm --version*",
+          "node -v*",
+          "node --version*",
+          "export*",
+          "source*",
+          ".*",
+          "curl*localhost*"
+        ],
+        "effect": "allow"
+      },
+      {
+        "capability": "shell",
+        "match": [
+          "*sudo*",
+          "*mkfs*",
+          "*dd*if=*",
+          "*diskutil*erase*",
+          "*diskutil*partition*",
+          "*diskutil*reformat*",
+          "*shutdown*",
+          "*reboot*",
+          "*halt*",
+          "*>*/dev/disk*",
+          "*>*/dev/rdisk*",
+          "*>*/dev/sd*",
+          "*chmod*-R*777*/*",
+          "*chown*-R*/*",
+          "*rm*/System*",
+          "*rm*/Users*",
+          "*rm*/Applications*",
+          "*rm*/Library*",
+          "*rm*/bin*",
+          "*rm*/sbin*",
+          "*rm*/usr*",
+          "*rm*/etc*",
+          "*rm*/var*",
+          "*rm*/opt*",
+          "*rm*/private*",
+          "*git*push*-f*",
+          "*git*push*:*master*",
+          "*git*push*:*main*",
+          "*git*reset*--hard*",
+          "*git*clean*-*f*",
+          "*git*filter-branch*",
+          "*git*filter-repo*",
+          "*git*update-ref*-d*",
+          "*git*config*--global*",
+          "*npm*publish*",
+          "*killall*",
+          "*pkill*node*",
+          "*pkill*Code*",
+          "*pkill*Kiro*",
+          "*curl*|*sh*",
+          "*wget*|*sh*",
+          "*rm -rf /",
+          "*rm -rf ~",
+          "*rm -rf ~/",
+          "*rm -rf $HOME"
+        ],
+        "effect": "deny"
+      },
+      {
+        "capability": "fs_read",
+        "match": [
+          "~/Desktop/**",
+          "~/.kiro/**",
+          "/tmp/**",
+          "./**"
+        ],
+        "effect": "allow"
+      },
+      {
+        "capability": "fs_write",
+        "match": [
+          "~/Desktop/**",
+          "~/.kiro/**",
+          "/tmp/**",
+          "./**"
+        ],
+        "effect": "allow"
+      },
+      {
+        "capability": "fs_write",
+        "match": [
+          "**/.env*",
+          "**/secrets*",
+          "**/*.pem",
+          "**/id_rsa*",
+          "~/.ssh/**",
+          "~/.aws/**",
+          "~/.kiro/agents/**"
+        ],
+        "effect": "deny"
+      },
+      {
+        "capability": "fs_read",
+        "effect": "allow"
+      },
+      {
+        "capability": "fs_write",
+        "effect": "allow"
+      },
+      {
+        "capability": "shell",
+        "effect": "allow"
+      },
+      {
+        "capability": "web_fetch",
+        "effect": "allow"
+      },
+      {
+        "capability": "web_search",
+        "effect": "allow"
+      },
+      {
+        "capability": "mcp",
+        "match": [
+          "figma/*"
+        ],
+        "effect": "allow"
+      },
+      {
+        "capability": "skill",
+        "effect": "allow"
+      }
+    ],
+    "policies": [
+      "read-only-shell"
+    ]
+  },
+  "kiroUpgrade": {
+    "revision": 2,
+    "fingerprint": "sha256:b016cb11b733a5af89a77795d6769dbfb039d640af69c28c23fd094b8a299406",
+    "source": "sha256:c3a57d0f52699626870be47c94f7532a0797322f4808a02e7257c69220a4b11f"
+  }
+}
